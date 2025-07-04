@@ -1,5 +1,4 @@
-# --------- Stage 1: Base image ---------
-FROM python:3.9-slim AS builder
+FROM python:3.9-slim
 
 WORKDIR /app/backend
 
@@ -7,22 +6,19 @@ WORKDIR /app/backend
 RUN apt-get update && apt-get install -y \
     gcc \
     default-libmysqlclient-dev \
-    build-essential \
     libssl-dev \
+    build-essential \
     pkg-config \
+    curl \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install
+# Copy and install Python dependencies
 COPY requirements.txt .
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# --------- Stage 2: Final image ---------
-FROM python:3.9-slim
-
-WORKDIR /app/backend
-
-COPY --from=builder /usr/local /usr/local
+# Copy the rest of the backend code
 COPY . .
 
 EXPOSE 8000
