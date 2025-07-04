@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 
 services:
   nginx:
@@ -49,17 +49,6 @@ services:
       start_period: 60s
     networks:
       - notes-app-nw
-
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-    networks:
-      - notes-app-nw
-    restart: always
 
   node_exporter:
     image: prom/node-exporter
