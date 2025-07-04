@@ -21,7 +21,7 @@ services:
     image: django_app
     container_name: django_cont
     ports:
-      - "8000:8000"  # Exposed internally; NGINX proxies this
+      - "8000:8000"
     command: >
       sh -c "python manage.py migrate --noinput &&
              gunicorn notesapp.wsgi:application --bind 0.0.0.0:8000"
@@ -30,12 +30,6 @@ services:
     depends_on:
       - db
     restart: always
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
     networks:
       - notes-app-nw
 
@@ -55,6 +49,26 @@ services:
       start_period: 60s
     networks:
       - notes-app-nw
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - notes-app-nw
+    restart: always
+
+  node_exporter:
+    image: prom/node-exporter
+    container_name: node_exporter
+    ports:
+      - "9100:9100"
+    networks:
+      - notes-app-nw
+    restart: always
 
 networks:
   notes-app-nw:
