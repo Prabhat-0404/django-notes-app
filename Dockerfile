@@ -1,20 +1,34 @@
-FROM python:3.9
+# ----------- STAGE 1: Build dependencies ----------- #
+FROM python:3.9-slim as builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y gcc default-libmysqlclient-dev pkg-config && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ----------- STAGE 2: Runtime container ----------- #
+FROM python:3.9-slim
 
 WORKDIR /app/backend
 
-COPY requirements.txt /app/backend
-RUN apt-get update \
-    && apt-get upgrade -y \
-    && apt-get install -y gcc default-libmysqlclient-dev pkg-config \
-    && rm -rf /var/lib/apt/lists/*
+# Copy installed python packages from builder stage
+COPY --from=builder /usr/local /usr/local
 
+# Copy actual app code
+COPY . .
 
-# Install app dependencies
-RUN pip install mysqlclient
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . /app/backend
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
-#RUN python manage.py migrate
-#RUN python manage.py makemigrations
+
+# Run migrations at runtime and start the server
+CMD ["sh", "-c", "python manage.py migrate && gunicorn notesapp.wsgi:application --bind 0.0.0.0:8000"]
