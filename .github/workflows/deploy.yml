@@ -1,0 +1,46 @@
+name: Deploy Django Notes App to EC2 with Docker Compose
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 1: Copy codebase to EC2 via SCP
+    - name: Copy files to EC2
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        source: "."
+        target: "/home/ubuntu/django-notes"
+
+    # Step 2: SSH into EC2 and run docker-compose up
+    - name: SSH into EC2 and deploy containers
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USER }}
+        key: ${{ secrets.EC2_KEY }}
+        script: |
+          cd django-notes
+
+          echo "[1/4] Pulling latest code"
+          git pull || true
+
+          echo "[2/4] Bringing down existing containers"
+          docker compose down || docker-compose down || true
+
+          echo "[3/4] Building and deploying with docker-compose"
+          docker compose up -d --build || docker-compose up -d --build
+
+          echo "[4/4] Showing running containers"
+          docker ps
